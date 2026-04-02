@@ -21,11 +21,11 @@ jobs:
           rsync -avz --delete \
             --exclude ".git" \
             --exclude ".github" \
-            -e "ssh -p 22 -i ~/.ssh/id_ed25519" \
+            -e "ssh -p ${{ secrets.VPS_PORT }} -i ~/.ssh/id_ed25519" \
             ./ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/html/nicoh/
       - name: Post-déploiement
         run: |
-          ssh -p 22 -i ~/.ssh/id_ed25519 \
+          ssh -p ${{ secrets.VPS_PORT }} -i ~/.ssh/id_ed25519 \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "cd /var/www/html/nicoh && ls -la"
