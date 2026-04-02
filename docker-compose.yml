@@ -1,0 +1,78 @@
+services:
+
+  # --- Serveur web ---
+  web:
+    # Image de base : Ubuntu 24.04 LTS (système d'exploitation du serveur)
+    image: ubuntu:24.04
+    # Nom du conteneur, utilisé dans les commandes docker exec
+    container_name: infraweb
+    # Garde l'entrée standard ouverte même sans commande active (nécessaire pour bash)
+    stdin_open: true
+    # Alloue un pseudo-terminal (permet d'avoir un shell interactif coloré)
+    tty: true
+    # Redirige les ports : port 8080 de la machine hôte → port 80 du conteneur
+    ports:
+      - "8080:80"
+    # Monte le dossier local ./www dans le conteneur : les fichiers du site persistent sur la machine hôte
+    volumes:
+      - ./www:/var/www/html
+    # Connecte ce conteneur au réseau interne partagé
+    networks:
+      - infraweb-network
+    # Ce conteneur ne démarre qu'après le démarrage du conteneur "db"
+    depends_on:
+      - db
+    command:
+      - "service apache2 start"
+
+  # --- Base de données ---
+  db:
+    # Image officielle MySQL en version 8.0
+    image: mysql:8.0
+    # Nom du conteneur
+    container_name: infraweb-db
+    # Variables d'environnement pour initialiser MySQL au premier démarrage
+    environment:
+      # Mot de passe du compte root (administrateur) MySQL
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      # Nom de la base de données créée automatiquement
+      - MYSQL_DATABASE=mabase
+      # Nom d'un utilisateur standard créé automatiquement
+      - MYSQL_USER=etudiant
+      # Mot de passe de cet utilisateur
+      - MYSQL_PASSWORD=etudiant
+    # Volume nommé pour stocker les données MySQL en dehors du conteneur (persistance)
+    volumes:
+      - db-data:/var/lib/mysql
+    # Connecte ce conteneur au réseau interne partagé
+    networks:
+      - infraweb-network
+
+  # --- Interface graphique pour la base de données ---
+  phpmyadmin:
+    # Image officielle phpMyAdmin (dernière version stable)
+    image: phpmyadmin:latest
+    # Nom du conteneur
+    container_name: infraweb-phpmyadmin
+    # Redirige le port 8081 de la machine hôte → port 80 du conteneur phpMyAdmin
+    ports:
+      - "8081:80"
+    environment:
+      # Indique à phpMyAdmin le nom d'hôte du serveur MySQL (= nom du service Docker)
+      - PMA_HOST=db
+    # Ce conteneur ne démarre qu'après le démarrage du conteneur "db"
+    depends_on:
+      - db
+    # Connecte ce conteneur au réseau interne partagé
+    networks:
+      - infraweb-network
+
+# --- Volumes nommés ---
+volumes:
+  # Volume géré par Docker pour stocker les données MySQL de façon persistante
+  db-data:
+
+# --- Réseau interne ---
+networks:
+  # Réseau privé virtuel qui permet aux conteneurs de communiquer entre eux par leur nom
+  infraweb-network:
